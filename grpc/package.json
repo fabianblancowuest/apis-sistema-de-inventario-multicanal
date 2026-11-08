@@ -1,0 +1,16 @@
+{
+  "name": "inventario-grpc",
+  "private": true,
+  "type": "module",
+  "description": "Microservicio gRPC que expone ProductoService consultando la API interna de Laravel",
+  "scripts": {
+    "server": "node --env-file-if-exists=.env server.js",
+    "client": "node --env-file-if-exists=.env client.js",
+    "comparar": "node --env-file-if-exists=.env comparar.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.0",
+    "@grpc/proto-loader": "^0.7.13",
+    "protobufjs": "^7.4.0"
+  }
+}

@@ -1,0 +1,37 @@
+"A datetime string with format `Y-m-d H:i:s`, e.g. `2018-05-23 13:43:32`."
+scalar DateTime @scalar(class: "Nuwave\\Lighthouse\\Schema\\Types\\Scalars\\DateTime")
+
+"Producto del inventario."
+type Producto {
+    id: ID!
+    nombre: String!
+    precio: Float!
+    stock: Int!
+    created_at: DateTime
+    updated_at: DateTime
+}
+
+type Query {
+    "Lista todos los productos."
+    productos: [Producto!]! @all(model: "App\\Models\\Producto")
+
+    "Busca un producto por ID (null si no existe)."
+    producto(id: ID! @eq): Producto @find(model: "App\\Models\\Producto")
+}
+
+"Datos para crear un producto (las validaciones las aplica ProductoService)."
+input CrearProductoInput {
+    nombre: String!
+    precio: Float!
+    stock: Int!
+}
+
+type Mutation {
+    "Crea un producto reutilizando las mismas reglas que POST /api/productos."
+    crearProducto(input: CrearProductoInput!): Producto!
+        @field(resolver: "App\\GraphQL\\Mutations\\ProductoMutations@crear")
+
+    "Suma (positivo) o resta (negativo) unidades al stock. Equivale a PATCH /api/productos/{id}/stock."
+    ajustarStock(id: ID!, cantidad: Int!): Producto!
+        @field(resolver: "App\\GraphQL\\Mutations\\ProductoMutations@ajustarStock")
+}

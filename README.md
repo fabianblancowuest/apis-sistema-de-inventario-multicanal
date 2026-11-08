@@ -42,7 +42,7 @@ En el listado completo, REST devuelve **733 bytes** y GraphQL pidiendo sólo `no
 2. **¿Qué ventaja tiene pedir sólo algunos campos?** Respuestas más chicas, sin datos de más ni peticiones de más, y cada pantalla pide exactamente lo que muestra.
 3. **¿Por qué gRPC usa archivos `.proto`?** Son el contrato tipado entre cliente y servidor: permiten generar código en cualquier lenguaje y serializar en binario compacto.
 4. **¿Qué aportan los WebSockets con varios usuarios?** El servidor avisa al instante, todos ven el stock real y se evita el polling.
-5. **¿Qué usaríamos para ventas web + móvil?** REST como API principal, WebSockets con canales privados para el tiempo real, GraphQL si las pantallas piden datos muy distintos, y gRPC sólo entre servicios internos.
+5. **¿Qué usaría para ventas web + móvil?** REST como API principal, WebSockets con canales privados para el tiempo real, GraphQL si las pantallas piden datos muy distintos, y gRPC sólo entre servicios internos.
 6. **¿Qué problemas trae usar todo junto?** Reglas duplicadas o inconsistentes, más procesos e infraestructura, seguridad en varios frentes y contratos que hay que versionar en paralelo.
 
 Las respuestas completas están en la [sección 4 del informe](INFORME.md#4-preguntas-para-el-informe-final).

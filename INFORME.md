@@ -57,7 +57,7 @@ Mediciones propias con `grpc/comparar.js`: Windows 11, todo en la misma máquina
 ### Análisis de los resultados
 
 - **Tamaño:** gRPC es el más compacto por usar Protocol Buffers (binario, sin nombres de campos, sólo números de campo). GraphQL es más chico que REST porque no manda los timestamps. WebSocket es el más grande por mensaje porque usa JSON y el protocolo Pusher agrega metadatos, pero manda un solo mensaje por cambio en lugar de que cada cliente pregunte.
-- **Tiempo:** las tres tecnologías de consulta dan valores parecidos (30–50 ms) porque en local lo que domina es arrancar Laravel en cada petición con `php artisan serve`, no la red. GraphQL es un poco más lento porque tiene que parsear y validar la consulta contra el esquema. **gRPC tiene un detalle importante:** en nuestra arquitectura el microservicio le pide los datos a Laravel por HTTP (API interna), así que su tiempo *incluye una petición REST*; aun así quedó igual o mejor, porque el tramo cliente→microservicio (HTTP/2, conexión reutilizada, binario) es muy barato. En un sistema donde el servicio gRPC accede directamente a sus datos, la diferencia sería mayor.
+- **Tiempo:** las tres tecnologías de consulta dan valores parecidos (30–50 ms) porque en local lo que domina es arrancar Laravel en cada petición con `php artisan serve`, no la red. GraphQL es un poco más lento porque tiene que parsear y validar la consulta contra el esquema. **gRPC tiene un detalle importante:** en mi arquitectura el microservicio le pide los datos a Laravel por HTTP (API interna), así que su tiempo *incluye una petición REST*; aun así quedó igual o mejor, porque el tramo cliente→microservicio (HTTP/2, conexión reutilizada, binario) es muy barato. En un sistema donde el servicio gRPC accede directamente a sus datos, la diferencia sería mayor.
 - **WebSocket:** la mayor parte del tiempo es la **cola**. El evento implementa `ShouldBroadcast`, entonces se guarda como trabajo en la tabla `jobs` y `queue:work` lo procesa; con la configuración por defecto el worker espera 3 s cuando no hay trabajos, de ahí los ~3,2 s. Con `--sleep=0` baja a ~0,3 s. Si se quiere inmediato se puede usar `ShouldBroadcastNow` (sin cola), a costa de que la petición HTTP espere el envío.
 
 ## 4. Preguntas para el informe final
@@ -68,36 +68,36 @@ REST modela el sistema como **recursos** identificados por URL (`/api/productos/
 
 **2. ¿Qué ventajas tiene solicitar solamente determinados campos en GraphQL?**
 
-- Respuestas más chicas: en nuestras pruebas, 238 bytes contra 733 de REST para el listado. Importa sobre todo en celulares y redes lentas.
+- Respuestas más chicas: en mis pruebas, 238 bytes contra 733 de REST para el listado. Importa sobre todo en celulares y redes lentas.
 - Se evita el *over-fetching* (recibir datos que no se usan) y el *under-fetching* (tener que hacer varias peticiones para juntar datos relacionados).
 - Cada pantalla pide exactamente lo que muestra sin que el backend tenga que crear un endpoint nuevo para cada vista.
 - El esquema documenta qué campos existen y sus tipos, y permite saber qué campos usan realmente los clientes.
 
 **3. ¿Por qué gRPC utiliza archivos .proto?**
 
-El `.proto` es el **contrato** entre cliente y servidor: define los servicios, los métodos (`rpc ObtenerProducto`) y la estructura exacta de los mensajes con tipos y números de campo. A partir de ese archivo se generan (o cargan, como hacemos con `proto-loader`) clientes y servidores en cualquier lenguaje, de modo que un servidor en Node y un cliente en Python o Go hablan exactamente el mismo idioma. Además, los números de campo (`id = 1`, `nombre = 2`…) son los que viajan en el binario de Protocol Buffers en lugar de los nombres, por eso el mensaje pesa 26 bytes, y permiten agregar campos nuevos sin romper clientes viejos.
+El `.proto` es el **contrato** entre cliente y servidor: define los servicios, los métodos (`rpc ObtenerProducto`) y la estructura exacta de los mensajes con tipos y números de campo. A partir de ese archivo se generan (o cargan, como hice con `proto-loader`) clientes y servidores en cualquier lenguaje, de modo que un servidor en Node y un cliente en Python o Go hablan exactamente el mismo idioma. Además, los números de campo (`id = 1`, `nombre = 2`…) son los que viajan en el binario de Protocol Buffers en lugar de los nombres, por eso el mensaje pesa 26 bytes, y permiten agregar campos nuevos sin romper clientes viejos.
 
 **4. ¿Qué ventaja ofrecen los WebSockets cuando varios usuarios modifican un inventario?**
 
 Con WebSockets la conexión queda abierta y **el servidor avisa** apenas hay un cambio, en lugar de que cada cliente tenga que preguntar cada tantos segundos (polling). Ventajas:
 - Todos ven el stock real casi al instante, así se reducen las ventas de productos que ya no hay o las decisiones con datos viejos.
 - Menos carga: un solo mensaje por cambio, en lugar de N clientes preguntando todo el tiempo aunque no haya cambios.
-- Mejor experiencia: la pantalla se actualiza sola, sin recargar (lo comprobamos con dos navegadores).
+- Mejor experiencia: la pantalla se actualiza sola, sin recargar (lo comprobé con dos navegadores).
 
-Igualmente, el WebSocket **sólo notifica**; la consistencia la garantiza el servidor (en nuestro caso, la transacción con bloqueo que impide stock negativo cuando dos usuarios descuentan a la vez).
+Igualmente, el WebSocket **sólo notifica**; la consistencia la garantiza el servidor (en mi implementación, la transacción con bloqueo que impide stock negativo cuando dos usuarios descuentan a la vez).
 
 **5. ¿Qué tecnologías utilizarían para un sistema de gestión de ventas con aplicación web y móvil? Justificar.**
 
 - **REST como API principal** para las operaciones de ventas, clientes y productos: es simple, la entienden todos los frameworks web y móviles, se prueba fácil con Postman, aprovecha la caché HTTP y los códigos de estado, y en Laravel sale casi de forma nativa (con Sanctum para la autenticación).
 - **WebSockets (Reverb) con canales privados** para lo que tiene que estar en tiempo real: stock, nuevos pedidos, estado de la caja. Evita el polling desde web y móvil.
 - **GraphQL como opción** si las pantallas de la app móvil y la web necesitan datos muy distintos o hay muchas relaciones (venta → cliente → ítems → productos); ahorra datos móviles y peticiones. Si el sistema es chico, agrega complejidad que no hace falta.
-- **gRPC sólo entre servicios internos** (por ejemplo facturación o un servicio de stock separado), donde importa el rendimiento y los contratos estrictos. No lo usaríamos hacia el navegador porque necesita gRPC-Web y un proxy.
+- **gRPC sólo entre servicios internos** (por ejemplo facturación o un servicio de stock separado), donde importa el rendimiento y los contratos estrictos. No lo usaría hacia el navegador porque necesita gRPC-Web y un proxy.
 
 **6. ¿Qué inconvenientes podrían aparecer al implementar todas estas tecnologías en un mismo proyecto?**
 
-- **Duplicación de lógica y reglas inconsistentes:** si cada interfaz valida a su manera, un producto puede ser válido por GraphQL e inválido por REST. Lo resolvimos con `ProductoService`, pero hay que mantener esa disciplina.
-- **Más infraestructura y procesos:** en nuestra práctica hacen falta 4 procesos (`serve`, `reverb:start`, `queue:work`, servidor gRPC) y dos lenguajes (PHP y Node). Más cosas para desplegar, monitorear y que se pueden caer.
+- **Duplicación de lógica y reglas inconsistentes:** si cada interfaz valida a su manera, un producto puede ser válido por GraphQL e inválido por REST. Lo resolví con `ProductoService`, pero hay que mantener esa disciplina.
+- **Más infraestructura y procesos:** en mi práctica hacen falta 4 procesos (`serve`, `reverb:start`, `queue:work`, servidor gRPC) y dos lenguajes (PHP y Node). Más cosas para desplegar, monitorear y que se pueden caer.
 - **Seguridad en varios frentes:** autenticación y autorización distintas en REST, GraphQL (consultas muy profundas o costosas), canales WebSocket (privados/presencia) y API interna de gRPC (token compartido, TLS).
 - **Versionado de contratos:** cambiar un campo implica actualizar el `.proto`, el esquema GraphQL, las respuestas REST y el payload de los eventos.
-- **Problemas de rendimiento propios de cada uno:** N+1 en GraphQL, retrasos de la cola en los eventos (vimos 3 s por la configuración del worker), conexiones abiertas en WebSocket.
+- **Problemas de rendimiento propios de cada uno:** N+1 en GraphQL, retrasos de la cola en los eventos (medí 3 s por la configuración del worker), conexiones abiertas en WebSocket.
 - **Curva de aprendizaje y pruebas más complejas** para el equipo, y más dependencias externas que actualizar.

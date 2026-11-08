@@ -1,7 +1,7 @@
 # Informe — Sistema de Inventario Multicanal
 
 **Materia:** Programación IV — TUP
-**Integrantes:** _(completar)_
+**Integrante:** Fabián Blanco Wuest
 **Fecha:** 07/11/2026
 
 ## 1. Qué se implementó

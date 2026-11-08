@@ -1,7 +1,7 @@
 # Sistema de Inventario Multicanal
 
 Trabajo práctico de **Programación IV — TUP**.
-**Integrantes:** _(completar)_
+**Integrante:** Fabián Blanco Wuest
 
 **Objetivo:** desarrollar una aplicación Laravel que gestione productos y exponga sus datos con distintos mecanismos de comunicación (**REST**, **GraphQL**, **WebSockets** y **gRPC**) para analizar sus diferencias en funcionamiento, estructura y rendimiento.
 
